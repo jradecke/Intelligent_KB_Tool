@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Intelligent KB Tool</title>
+    <style>
+        * {
+          box-sizing: border-box;
+        }
+
+        body {
+          font: 16px Arial;
+        }
+        input {
+          border: 1px solid transparent;
+          background-color: #ffffff;
+          padding: 10px;
+          font-size: 16px;
+        }
+
+        input[type=text] {
+          background-color: #f1f1f1;
+          width: 100%;
+        }
+
+        input[type=submit] {
+          background-color: DodgerBlue;
+          color: #ffffff;
+          cursor: pointer;
+        }
+        .highlight{
+            background-color: yellow;
+        }
+        .autocomplete {
+            position: relative;
+            display: inline-block;
+        }
+        .autocomplete-items {
+            position: absolute;
+            border: 1px solid #d4d4d4;
+            border-bottom: none;
+            border-top: none;
+            z-index: 99;
+            top: 100%;
+            left: 0;
+            right: 0;
+        }
+        .autocomplete-items div {
+            padding: 10px;
+            cursor: pointer;
+            background-color: #fff;
+             border-bottom: 1px solid #d4d4d4;
+        }
+        .autocomplete-items div:hover{
+            background-color: #e9e9e9;
+        }
+        .autocomplete-active {
+            background-color: dodgerblue !important;
+            color: #ffffff;
+        }
+        .advice-items{
+            border: 1px solid #000000;
+        }
+        .advice-items div{
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+<h1>Names: </h1>
+<form action="" onsubmit="sendName(event)" id="form-name" autocomplete="off">
+    <div class="autocomplete" style="width:300px;">
+        <input type="text" id="name" >
+    </div>
+    <input type="submit">
+</form>
+<h2>Decline advice: </h2>
+<form action="" onsubmit="sendDecline(event)" id="form-decline">
+    <input type="submit" id="decline-submit" value="Selected Elements">
+</form>
+<p id="result"></p>
+</body>
+<script>
+    var ws = new WebSocket("ws://localhost:8000/ws");
+    const namesList = [];
+
+ws.onmessage = function (event){
+    namesList.length = 0
+    const obj = JSON.parse(event.data);
+    for (const key in obj){
+        namesList.push(key);
+    }
+};
+
+function sendName(event){
+    var input_name = document.getElementById("name");
+    if (!input_name.value){return false;}
+    var toSend = {"name": input_name.value};
+    ws.send(JSON.stringify(toSend));
+    input_name.value = '';
+    event.preventDefault();
+}
+
+function sendDecline(event){
+    let checkedBoxes = document.querySelectorAll('input[name="name"]:checked');
+    var declineArray = [];
+    checkedBoxes.forEach((checkBox)=>{
+        declineArray.push(checkBox.value);
+    });
+    var toSend = {"decline": declineArray};
+    ws.send(JSON.stringify(toSend));
+    event.preventDefault();
+
+}
+
+function autocomplete(input, names) {
+    var currentFocus;
+    input.addEventListener("input", function (e){
+        var a, b, c, d, val = this.value
+        closeAllLists();
+        closeAllCheckBoxes()
+        currentFocus -=1;
+        if (!val) {return false;}
+        c = document.createElement('DIV');
+        c.setAttribute("id", "advice");
+        c.setAttribute("class", "advice-items");
+        document.getElementById("form-decline").insertBefore(c, document.getElementById("decline-submit"));
+        a = document.createElement('DIV');
+        a.setAttribute("id", this.id + "autocomplete-list");
+        a.setAttribute("class", "autocomplete-items");
+        this.parentNode.appendChild(a);
+        for (let i =0; i<names.length; i++) {
+            if (names[i].includes(val)) {
+                var index = names[i].indexOf(val);
+                b = document.createElement('DIV');
+                b.innerHTML += names[i].substring(0, index)+ "<span class='highlight'>"+val+"</span>"+names[i].substring(index + val.length, names[i].length);
+                b.innerHTML += "<input type='hidden' value='" + names[i] + "'>";
+                b.addEventListener("click", function (e) {
+                    this.value = this.getElementsByTagName("input")[0].value;
+                });
+                a.appendChild(b);
+                d = document.createElement('div');
+                d.innerHTML = "<label for='checkbox-"+i+"'><input type='checkbox' name='name' value='"+names[i]+"' id='checkbox-"+i+"'>"+names[i]+"</label>";
+                c.appendChild(d);
+            }
+        }
+    });
+    input.addEventListener("keydown", function(e) {
+        var x = document.getElementById(this.id + "autocomplete-list");
+        if (x) x = x.getElementsByTagName("div");
+        if (e.keyCode == 40) {
+            currentFocus++;
+            addActive(x);
+        }else if (e.keyCode == 38) {
+            currentFocus--;
+            addActive(x);
+        }else if (e.keyCode == 13) {
+         e.preventDefault();
+         if (currentFocus > -1) {
+              if (x) x[currentFocus].click();
+         }
+        }
+    });
+    function addActive(x){
+        removeActive(x);
+        if (currentFocus >= x.length) currentFocus = 0;
+        if (currentFocus < 0) currentFocus = (x.length - 1);
+        x[currentFocus].classList.add("autocomplete-active");
+    }
+    function removeActive(x) {
+        for (var i = 0; i < x.length; i++) {
+            x[i].classList.remove("autocomplete-active");
+        }
+    }
+    function closeAllLists(element) {
+        var x = document.getElementsByClassName("autocomplete-items");
+        for (var i = 0; i < x.length; i++) {
+            if (element != x[i] && element != input) {
+                x[i].parentNode.removeChild(x[i]);
+            }
+        }
+    }
+    function closeAllCheckBoxes(){
+        var span = document.getElementsByClassName('advice-items')
+        for (var i = 0;i < span.length; i++){
+            span[i].parentNode.removeChild(span[i]);
+        }
+    }
+    document.addEventListener("click", function (e) {
+      closeAllLists(e.target);
+    });
+}
+autocomplete(document.getElementById("name"),namesList);
+</script>
+</html>
