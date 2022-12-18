@@ -28,6 +28,11 @@
           color: #ffffff;
           cursor: pointer;
         }
+        button{
+            background-color: DodgerBlue;
+            color: #ffffff;
+                cursor: pointer;
+        }
         .highlight{
             background-color: yellow;
         }
@@ -77,6 +82,7 @@
 <h2>Decline advice: </h2>
 <form action="" onsubmit="sendDecline(event)" id="form-decline">
     <input type="submit" id="decline-submit" value="Selected Elements">
+    <button onclick="sendDeclineAll(event)">Decline All</button>
 </form>
 <p id="result"></p>
 </body>
@@ -110,7 +116,17 @@ function sendDecline(event){
     var toSend = {"decline": declineArray};
     ws.send(JSON.stringify(toSend));
     event.preventDefault();
+}
 
+function sendDeclineAll(event){
+    let checkBoxes = document.querySelectorAll('input[name="name"]');
+    var declineArray = [];
+    checkBoxes.forEach((checkBox)=>{
+        declineArray.push(checkBox.value);
+    });
+    var toSend = {"decline": declineArray};
+    ws.send(JSON.stringify(toSend));
+    event.preventDefault();
 }
 
 function autocomplete(input, names) {
