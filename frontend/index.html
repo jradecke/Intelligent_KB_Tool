@@ -135,7 +135,7 @@ function autocomplete(input, names) {
         var a, b, c, d, val = this.value
         closeAllLists();
         closeAllCheckBoxes()
-        currentFocus -=1;
+        currentFocus =-1;
         if (!val) {return false;}
         c = document.createElement('DIV');
         c.setAttribute("id", "advice");
@@ -149,14 +149,20 @@ function autocomplete(input, names) {
             if (names[i].includes(val)) {
                 var index = names[i].indexOf(val);
                 b = document.createElement('DIV');
+                b.setAttribute("id", i);
                 b.innerHTML += names[i].substring(0, index)+ "<span class='highlight'>"+val+"</span>"+names[i].substring(index + val.length, names[i].length);
                 b.innerHTML += "<input type='hidden' value='" + names[i] + "'>";
-                b.addEventListener("click", function (e) {
-                    this.value = this.getElementsByTagName("input")[0].value;
-                });
-                a.appendChild(b);
                 d = document.createElement('div');
                 d.innerHTML = "<label for='checkbox-"+i+"'><input type='checkbox' name='name' value='"+names[i]+"' id='checkbox-"+i+"'>"+names[i]+"</label>";
+                b.addEventListener("click", function (e) {
+                    input.value = this.getElementsByTagName("input")[0].value;
+                    for(let j = 0; j<c.children.length; j++){
+                        if (!c.children[j].id.includes(b.id)){
+                            c.removeChild(c.children[j]);
+                        }
+                    }
+                });
+                a.appendChild(b);
                 c.appendChild(d);
             }
         }
